@@ -1,0 +1,166 @@
+from mopidy import backend, models, config
+from yandex_music import Client
+from .caches import YMTrackCache, YMLikesCache
+from .classes import YMTrack, YMArtist, YMAlbum, YMRef, YMPlaylist
+import logging
+logger = logging.getLogger("yandex")
+
+class YandexMusicLibraryProvider(backend.LibraryProvider):
+    def __init__(self, client: Client, track_cache: YMTrackCache, likes_cache: YMLikesCache):
+        self._client = client
+        self._track_cache = track_cache
+        self._likes_cache = likes_cache
+        self.root_directory = YMRef.root()
+
+    def browse(self, uri):
+        logger.debug('browse')
+        logger.debug(uri)
+        refs = []
+        feed = self._client.feed()
+        params = uri.split(':')
+        if uri == 'yandexmusic:directory:root':
+          for event in feed.days[0].events:
+            artwork = ''
+            description = ''
+            if event.type == 'artists':
+               artwork = event.artists[0].artist.cover.uri
+               description = 'Исполнители'
+            if event.type == 'tracks':
+               artwork = event.tracks[0].cover_uri
+               description = 'Треки'
+            if event.type == 'albums':
+               artwork = event.albums[0].album.cover_uri
+               description = 'Альбомы'
+            refs.append(YMRef.from_event(event.id,event.title,artwork,description))
+        else:
+          kind = params[1]
+          if kind == 'event':
+            id = params[2]
+            thisevent = None
+            for event in feed.days[0].events:
+              if event.id == id:
+                thisevent = event
+                break
+            tracks = thisevent.tracks
+            ymrefs = []
+            for artist in thisevent.artists:
+               ymrefs.append(YMRef.from_artist(artist['artist']))
+            for album in thisevent.albums:
+               ymrefs.append(YMRef.from_album(album))
+            for track in tracks:
+               ymrefs.append(YMRef.from_track(track))
+            return ymrefs
+          if kind == 'artist':
+            ymartist_id = params[2]
+            tracks = self._client.artists_tracks(ymartist_id)
+            ymrefs = []
+            for track in tracks:
+              uri = f"yandexmusic:track:{track.id}"
+              name = track.title
+              length = track.duration_ms
+              artists = list(map(YMArtist.from_artist, track.artists))
+              artwork = track.cover_uri
+              ymtrack =  YMTrack(uri=uri, name=name, length=length, artwork=artwork, artists=artists)
+              self._track_cache.put(ymtrack)
+              ymrefs.append(YMRef.from_ytrack(ymtrack))
+            return ymrefs
+          return res_tracks
+
+        return refs
+
+    def search(self, query, uris = None, exact = False):
+        logger.debug('library search')
+        ya_query = " ".join(query['any'])
+        logger.debug(ya_query)
+        search_result = self._client.search(ya_query.encode('utf-8'))
+        res_artists = []
+        res_tracks = []
+        res_albums = []
+        #Best
+        logger.debug(search_result['best'].type)
+        best_uri = ''
+        if search_result['best'].type == 'artist':
+          res_artists = [YMArtist.from_artist(search_result['best']['result'])]
+          best_uri = res_artists[0].uri
+
+        if search_result['best'].type == 'album':
+          res_albums = [YMAlbum.from_album(search_result['best']['result'])]
+          best_uri = res_albums[0].uri
+
+        if search_result['best'].type == 'track':
+          res_tracks = [YMTrack.from_track(search_result['best']['result'],self._likes_cache.hasLike(search_result['best']['result'].id))]
+          best_uri = res_tracks[0].uri
+
+        #Other
+        if search_result['albums'] != None:
+          res_albums.append(YMAlbum.from_album(search_result['albums']['results'][0]))
+
+        if search_result['tracks'] != None:
+          res_tracks.append(YMTrack.from_track(search_result['tracks']['results'][0],self._likes_cache.hasLike(search_result['tracks']['results'][0].id)))
+        if search_result['artists'] != None:
+          res_artists.append(YMArtist.from_artist(search_result['artists']['results'][0]))
+
+        sresult = models.SearchResult(uri='', tracks=res_tracks, artists=res_artists, albums=res_albums)
+        logger.debug(sresult)
+        return sresult
+
+    def lookup(self, uri: str):
+        logger.debug('lookup')
+        logger.debug(uri)
+        track = self._track_cache.get(uri)
+        if track is not None:
+            return [track]
+
+        params = uri.split(":")
+        kind = params[1]
+        if kind == 'track':
+          ymtrack_id = params[2]
+          track_id = f"{ymtrack_id}"
+          ymtrack = self._client.tracks(track_id)
+          track = YMTrack.from_track(ymtrack[0],self._likes_cache.hasLike(track_id))
+          logger.debug(track.uri)
+          self._track_cache.put(track)
+          return [track]
+        if kind == 'artist':
+          ymartist_id = params[2]
+          tracks = self._client.artists_tracks(ymartist_id)
+          res_tracks = []
+          for track in tracks:
+            logger.debug(track)
+            uri = f"yandexmusic:track:{track.id}"
+            name = track.title
+            length = track.duration_ms
+            artists = list(map(YMArtist.from_artist, track.artists))
+            artwork = track.cover_uri
+            ymtrack =  YMTrack(uri=uri, name=name, length=length, artwork=artwork, artists=artists)
+            self._track_cache.put(ymtrack)
+            res_tracks.append(ymtrack)
+          return res_tracks
+        if kind == 'album':
+          ymalbum_id = params[2]
+          tracks = self._client.albums_with_tracks(ymalbum_id)
+          res_tracks = []
+          for vol in tracks['volumes']:
+            for track in vol:
+              ymtrack = YMTrack.from_track(track,_likes_cache.hasLike(track.id))
+              self._track_cache.put(ymtrack)
+              res_tracks.append(ymtrack)
+          return res_tracks
+        return []
+
+    def get_images(self, uris):
+        logger.debug('get_images')
+        logger.debug(uris)
+        result = dict()
+
+        for uri in uris:
+            _, kind, id = uri.split(":", 2)
+            if kind == "track":
+                track = self._track_cache.get(uri)
+                if track is None:
+                    continue
+                artwork_uri = "https://" + track.artwork.replace("%%", "400x400")
+                result[uri] = [models.Image(uri=artwork_uri)]
+            if kind == "playlist":
+                pass
+        return result
