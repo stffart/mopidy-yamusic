@@ -50,9 +50,15 @@ class YMRef(Ref):
 
     @staticmethod
     def from_playlist(playlist: YMPlaylist):
-        uri = f"yandexmusic:playlist:{playlist.playlist.id}"
+        uri = f"yandexmusic:playlist:{playlist.owner.uid}:{playlist.kind}"
         name = playlist.title
-        ref = YMRef(type=Ref.PLAYLIST, uri=uri, name=name)
+        artwork = ''
+        if playlist.cover.uri != None:
+          artwork = playlist.cover.uri
+        else:
+          if playlist.cover.items_uri != None:
+            artwork = playlist.cover.items_uri[0]
+        ref = YMRef(type=Ref.PLAYLIST, uri=uri, name=name, artwork=artwork)
 
         return ref
 

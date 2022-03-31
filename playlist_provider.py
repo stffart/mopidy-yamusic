@@ -34,8 +34,10 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
         yandex_premier = YMRef.from_raw(_YM_GENERATED, "yamusic-premiere", "Премьера","//avatars.yandex.net/get-music-user-playlist/27701/r5ldfjP1rJoson/%%")
         yandex_liked = YMRef.from_raw(_YM_LIKED, "yamusic-liked", "Мне нравится","//music.yandex.ru/blocks/playlist-cover/playlist-cover_like.png")
         playlists = self._client.users_playlists_list()
-        refs = list(map(YMRef.from_playlist, playlists))
+        refs = []
         refs.extend([yandex_daily, yandex_alice, yandex_premier, yandex_liked, yandex_podcasts])
+        user_refs = list(map(YMRef.from_playlist, playlists))
+        refs.extend(user_refs)
         self._playlists_list = refs
         logger.debug(refs)
         return refs
@@ -53,6 +55,7 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
 
     def lookup(self, uri: str) -> YMPlaylist:
             logger.debug("playlist lookup")
+            logger.debug(uri)
             _, kind, ym_userid, playlist_id = uri.split(":")
             if playlist_id in self._playlists:
               current = int(time.time())
@@ -61,9 +64,12 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
 
             if ym_userid == str(self._client.me.account.uid):
                 #User's playlists
-                ymplaylist = self._client.users_playlists(playlist_id)[0]
+                ymplaylist = self._client.users_playlists(playlist_id)
                 track_ids = list(map(lambda t: t.track_id, ymplaylist.tracks))
                 ymplaylist.tracks = self._client.tracks(track_ids)
+                for track in ymplaylist.tracks:
+                    track.liked = self._likes_cache.hasLike(track.id)
+
                 playlist = YMPlaylist.from_playlist(ymplaylist)
                 for track in playlist.tracks:
                     self._track_cache.put(track)

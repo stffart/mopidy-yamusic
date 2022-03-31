@@ -4,6 +4,7 @@ from .caches import YMTrackCache, YMLikesCache
 from .classes import YMTrack, YMArtist, YMAlbum, YMRef, YMPlaylist
 import logging
 logger = logging.getLogger("yandex")
+logging.basicConfig(level=logging.DEBUG)
 
 class YandexMusicLibraryProvider(backend.LibraryProvider):
     def __init__(self, client: Client, track_cache: YMTrackCache, likes_cache: YMLikesCache):
@@ -70,8 +71,20 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
 
     def search(self, query, uris = None, exact = False):
         logger.debug('library search')
-        ya_query = " ".join(query['any'])
-        logger.debug(ya_query)
+        logger.debug(query)
+        kind = ''
+        if 'any' in query:
+          ya_query = " ".join(query['any'])
+          kind = 'any'
+        if 'artist' in query:
+          ya_query = " ".join(query['artist'])
+          kind = 'artist'
+        if 'album' in query:
+          ya_query = " ".join(query['album'])
+          kind = 'album'
+        if 'track' in query:
+          ya_query = " ".join(query['track'])
+          kind = 'artist'
         search_result = self._client.search(ya_query.encode('utf-8'))
         res_artists = []
         res_tracks = []
@@ -157,9 +170,17 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
             _, kind, id = uri.split(":", 2)
             if kind == "track":
                 track = self._track_cache.get(uri)
+                artwork_uri = ""
                 if track is None:
-                    continue
-                artwork_uri = "https://" + track.artwork.replace("%%", "400x400")
+                    track = self._client.tracks(id)[0]
+                    artwork_uri = track.cover_uri
+                else:
+                    artwork_uri = track.artwork
+                artwork_uri = "https://" + artwork_uri.replace("%%", "400x400")
+                result[uri] = [models.Image(uri=artwork_uri)]
+            if kind == "album":
+                album = self._client.albums(id)[0]
+                artwork_uri = "https://" + album.cover_uri.replace("%%", "400x400")
                 result[uri] = [models.Image(uri=artwork_uri)]
             if kind == "playlist":
                 pass

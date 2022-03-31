@@ -6,7 +6,6 @@ from .playback_provider import YandexMusicPlaybackProvider
 from .library_provider import YandexMusicLibraryProvider
 from .caches import YMTrackCache, YMLikesCache
 
-
 class YandexMusicBackend(pykka.ThreadingActor, backend.Backend):
     def __init__(self, config: dict, audio: audio):
         super(YandexMusicBackend, self).__init__()
