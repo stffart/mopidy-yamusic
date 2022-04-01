@@ -94,6 +94,9 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
         best_uri = ''
         if search_result['best'].type == 'artist':
           res_artists = [YMArtist.from_artist(search_result['best']['result'])]
+          albums = self._client.artists_direct_albums(search_result['best']['result'].id)
+          for album in albums:
+            res_albums.append(YMAlbum.from_album(album))
           best_uri = res_artists[0].uri
 
         if search_result['best'].type == 'album':
@@ -155,7 +158,7 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
           res_tracks = []
           for vol in tracks['volumes']:
             for track in vol:
-              ymtrack = YMTrack.from_track(track,_likes_cache.hasLike(track.id))
+              ymtrack = YMTrack.from_track(track,self._likes_cache.hasLike(track.id))
               self._track_cache.put(ymtrack)
               res_tracks.append(ymtrack)
           return res_tracks

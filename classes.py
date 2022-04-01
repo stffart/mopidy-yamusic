@@ -97,7 +97,7 @@ class YMRef(Ref):
     @staticmethod
     def from_album(album: YAlbum):
         uri = f"yandexmusic:album:{album.id}"
-        name = album.title
+        name = f"{album.title} ({album.year})"
         artists = list(map(YMArtist.from_artist, album.artists))
         artwork = album.cover_uri
         ref = YMRef(type=Ref.ARTIST, uri=uri, name=name, artwork=artwork, artists=artists)
@@ -144,7 +144,7 @@ class YMAlbum(Album):
     @staticmethod
     def from_album(album: YAlbum):
         uri = f"yandexmusic:album:{album.id}"
-        name = album.title
+        name = f"{album.title} ({album.year})"
         artists = list(map(YMArtist.from_artist, album.artists))
         artwork = album.cover_uri
         yalbum = YMAlbum(uri=uri, name=name, artists=artists, artwork=artwork)
