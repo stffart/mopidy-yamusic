@@ -10,6 +10,7 @@ import random
 logger = logging.getLogger("yandex")
 _YM_GENERATED = "yandex-generated"
 _YM_LIKED = "yandex-liked"
+_YM_TRY = "yandex-try"
 
 
 class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
@@ -33,9 +34,10 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
         yandex_alice = YMRef.from_raw(_YM_GENERATED, "yamusic-origin", "Лист Алисы","//avatars.yandex.net/get-music-user-playlist/71140/r5lnmqmqOdwjQ0/%%")
         yandex_premier = YMRef.from_raw(_YM_GENERATED, "yamusic-premiere", "Премьера","//avatars.yandex.net/get-music-user-playlist/27701/r5ldfjP1rJoson/%%")
         yandex_liked = YMRef.from_raw(_YM_LIKED, "yamusic-liked", "Мне нравится","//music.yandex.ru/blocks/playlist-cover/playlist-cover_like.png")
+        yandex_try = YMRef.from_raw(_YM_LIKED, "yamusic-liked", "Попробуйте","//avatars.yandex.net/get-music-misc/30221/mix.5f632be0dc6c364f3f1a4bf7.background-image.1637914056405/%%")
         playlists = self._client.users_playlists_list()
         refs = []
-        refs.extend([yandex_daily, yandex_alice, yandex_premier, yandex_liked, yandex_podcasts])
+        refs.extend([yandex_daily, yandex_alice, yandex_premier, yandex_liked, yandex_try, yandex_podcasts])
         user_refs = list(map(YMRef.from_playlist, playlists))
         refs.extend(user_refs)
         self._playlists_list = refs
@@ -77,7 +79,37 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
                 self._playlists[playlist_id] = playlist
                 return playlist
             elif ym_userid == _YM_LIKED:
-                #Random playlist from liked tracks
+                #Random playlist from likes
+                feed = self._client.feed()
+                params = uri.split(':')
+                ymtracks_id = []
+                max_len = 30
+                for event in feed.days[0].events:
+                   artwork = ''
+                   description = ''
+                   if event.type == 'tracks':
+                     for track in event.tracks:
+                        ymtracks_id.append(track.id)
+
+                n = 0
+                random.shuffle(ymtracks_id)
+                ymtracks_id_part = []
+                for track in ymtracks_id:
+                  ymtracks_id_part.append(track)
+                  n = n + 1
+                  if n > max_len:
+                     break
+
+                ymtracks = []
+                ytracks = self._client.tracks(ymtracks_id_part)
+                for track in ytracks:
+                  ymtracks.append(YMTrack.from_track(track,self._likes_cache.hasLike(track.id)))
+                uri = f"yandexmusic:playlist:try"
+                name = "Try"
+                playlist = YMPlaylist(uri=uri, name=name, tracks=ymtracks)
+                return playlist
+            elif ym_userid == _YM_LIKED:
+                #Random playlist from daily events
                 tracks = self._client.users_likes_tracks(self._client.me.account.uid)
                 ymtracks_id = []
                 ymtracks = []
