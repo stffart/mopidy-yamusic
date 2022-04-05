@@ -9,7 +9,7 @@ import json
 import random
 logger = logging.getLogger("yandex")
 _YM_GENERATED = "yandex-generated"
-_YM_LIKED = "yandex-liked"
+_YM_LIKED = "yandex-like"
 _YM_TRY = "yandex-try"
 
 
@@ -29,12 +29,12 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
         logger.debug("playlist as list")
         if self._playlists_list != {}:
           return self._playlists_list
-        yandex_daily = YMRef.from_raw(_YM_GENERATED, "yamusic-daily", "Микс дня", "//avatars.yandex.net/get-music-user-playlist/70586/r5l8ziDPSKyp02/%%")
-        yandex_podcasts = YMRef.from_raw(_YM_GENERATED, "yamusic-podcasts", "Подкасты","//avatars.yandex.net/get-music-user-playlist/28719/r5loh7rM0HS0tl/%%")
-        yandex_alice = YMRef.from_raw(_YM_GENERATED, "yamusic-origin", "Лист Алисы","//avatars.yandex.net/get-music-user-playlist/71140/r5lnmqmqOdwjQ0/%%")
-        yandex_premier = YMRef.from_raw(_YM_GENERATED, "yamusic-premiere", "Премьера","//avatars.yandex.net/get-music-user-playlist/27701/r5ldfjP1rJoson/%%")
-        yandex_liked = YMRef.from_raw(_YM_LIKED, "yamusic-liked", "Мне нравится","//music.yandex.ru/blocks/playlist-cover/playlist-cover_like.png")
-        yandex_try = YMRef.from_raw(_YM_LIKED, "yamusic-liked", "Попробуйте","//avatars.yandex.net/get-music-misc/30221/mix.5f632be0dc6c364f3f1a4bf7.background-image.1637914056405/%%")
+        yandex_daily = YMRef.from_raw(_YM_GENERATED, "yamusic-daily", "Микс дня", "avatars.yandex.net/get-music-user-playlist/70586/r5l8ziDPSKyp02/%%")
+        yandex_podcasts = YMRef.from_raw(_YM_GENERATED, "yamusic-podcasts", "Подкасты","avatars.yandex.net/get-music-user-playlist/28719/r5loh7rM0HS0tl/%%")
+        yandex_alice = YMRef.from_raw(_YM_GENERATED, "yamusic-origin", "Лист Алисы","avatars.yandex.net/get-music-user-playlist/71140/r5lnmqmqOdwjQ0/%%")
+        yandex_premier = YMRef.from_raw(_YM_GENERATED, "yamusic-premiere", "Премьера","avatars.yandex.net/get-music-user-playlist/27701/r5ldfjP1rJoson/%%")
+        yandex_liked = YMRef.from_raw(_YM_LIKED, "yamusic-like", "Мне нравится","music.yandex.ru/blocks/playlist-cover/playlist-cover_like.png")
+        yandex_try = YMRef.from_raw(_YM_TRY, "yamusic-try", "Попробуйте","avatars.yandex.net/get-music-misc/30221/mix.5f632be0dc6c364f3f1a4bf7.background-image.1637914056405/%%")
         playlists = self._client.users_playlists_list()
         refs = []
         refs.extend([yandex_daily, yandex_alice, yandex_premier, yandex_liked, yandex_try, yandex_podcasts])
@@ -78,8 +78,8 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
                 self._playlists_tm[playlist_id] = int(time.time())
                 self._playlists[playlist_id] = playlist
                 return playlist
-            elif ym_userid == _YM_LIKED:
-                #Random playlist from likes
+            elif ym_userid == _YM_TRY:
+                #Random playlist from daily events
                 feed = self._client.feed()
                 params = uri.split(':')
                 ymtracks_id = []
@@ -109,7 +109,7 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
                 playlist = YMPlaylist(uri=uri, name=name, tracks=ymtracks)
                 return playlist
             elif ym_userid == _YM_LIKED:
-                #Random playlist from daily events
+                #Random playlist from likes
                 tracks = self._client.users_likes_tracks(self._client.me.account.uid)
                 ymtracks_id = []
                 ymtracks = []
@@ -163,11 +163,8 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
                 self._playlists[playlist_id] = playlist
                 return playlist
 
-
-    def create(self, name):
-        logger.debug("save")
-        logger.debug(name)
-        if 'liked:' in name:
+    #like track currently with special create/save playlist command
+    def trackLike(self,name):
           params = name.split(':')
           liked = params[1]
           track_id = params[4]
@@ -183,6 +180,12 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
             self._likes_cache.remove(track_id)
             ytrack = YMTrack.from_track(track,False)
             self._track_cache.put(ytrack)
+
+    def create(self, name):
+        logger.debug("save")
+        logger.debug(name)
+        if 'liked:' in name:
+          self.trackLike(name)
         return None
 
     def delete(self, uri):
@@ -192,7 +195,10 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
         logger.debug("refresh")
         pass
 
-    def save(self, playlist):
+    def save(self, name):
         logger.debug("save")
-        logger.debug(playlist)
+        logger.debug(name)
+        if 'liked:' in name:
+          self.trackLike(name)
         return None
+

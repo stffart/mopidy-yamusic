@@ -18,6 +18,9 @@ class YMTrack(Track):
         artwork = track.cover_uri
         return YMTrack(uri=uri, name=name, length=length, artwork=artwork, artists=artists, album=album, like=like)
 
+    def switchLike(self):
+       return YMTrack(uri=self.uri, name=self.name, length=self.length, artwork=self.artwork, artists=self.artists, album=self.album, like=(not self.like))
+
     artwork = fields.String()
     like = fields.Boolean()
 
