@@ -12,3 +12,20 @@ Features:
 - User's stored playlists, add/remove track from playlist, like tracks
 - Browse Daily Events (Yandex Recommendations)
 
+
+### Installation
+
+Install by running:
+
+```
+pip install mopidy-yamusic
+```
+
+### Configuration
+
+```
+[yamusic]
+login = alice
+password = secret
+bitrate = 192 
+```
