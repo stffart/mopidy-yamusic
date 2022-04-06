@@ -84,7 +84,7 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
           kind = 'album'
         if 'track' in query:
           ya_query = " ".join(query['track'])
-          kind = 'artist'
+          kind = 'track'
         search_result = self._client.search(ya_query.encode('utf-8'))
         res_artists = []
         res_tracks = []
@@ -109,12 +109,41 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
 
         #Other
         if search_result['albums'] != None:
-          res_albums.append(YMAlbum.from_album(search_result['albums']['results'][0]))
+          max_albums = 1
+          index = 1
+          for album in search_result['albums']['results']:
+            if search_result['best'].type == 'album':
+              if search_result['best']['result'].id == album.id:
+                 continue
+            res_albums.append(YMAlbum.from_album(album))
+            index = index + 1
+            if index > max_albums:
+              break
 
         if search_result['tracks'] != None:
-          res_tracks.append(YMTrack.from_track(search_result['tracks']['results'][0],self._likes_cache.hasLike(search_result['tracks']['results'][0].id)))
+          max_tracks = 5
+          index = 1
+          for track in search_result['tracks']['results']:
+            if search_result['best'].type == 'track':
+              if search_result['best']['result'].id == track.id:
+                continue
+            res_tracks.append(YMTrack.from_track(track,self._likes_cache.hasLike(track.id)))
+            index = index + 1
+            if index > max_tracks:
+              break
+
         if search_result['artists'] != None:
-          res_artists.append(YMArtist.from_artist(search_result['artists']['results'][0]))
+          max_artists = 1
+          index = 1
+          for artist in search_result['artists']['results']:
+            if search_result['best'].type == 'artist':
+              if search_result['best']['result'].id == artist.id:
+                 continue
+            res_artists.append(YMArtist.from_artist(artist))
+            index = index + 1
+            if index > max_artists:
+              break
+
 
         sresult = models.SearchResult(uri='', tracks=res_tracks, artists=res_artists, albums=res_albums)
         logger.debug(sresult)

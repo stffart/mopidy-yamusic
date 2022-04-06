@@ -55,6 +55,24 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
             refs = list(map(YMRef.from_track, tracks))
             return refs
 
+    def get_user_playlist(self, playlist_id):
+            if playlist_id in self._playlists:
+              current = int(time.time())
+              if current - self._playlists_tm[playlist_id] < 7200: #caching for 2 hours
+                return self._playlists[playlist_id]
+            ymplaylist = self._client.users_playlists(playlist_id)
+            track_ids = list(map(lambda t: t.track_id, ymplaylist.tracks))
+            ymplaylist.tracks = self._client.tracks(track_ids)
+            for track in ymplaylist.tracks:
+              track.liked = self._likes_cache.hasLike(track.id)
+
+            playlist = YMPlaylist.from_playlist(ymplaylist)
+            for track in playlist.tracks:
+                    self._track_cache.put(track)
+            self._playlists_tm[playlist_id] = int(time.time())
+            self._playlists[playlist_id] = playlist
+            return playlist
+
     def lookup(self, uri: str) -> YMPlaylist:
             logger.debug("playlist lookup")
             logger.debug(uri)
@@ -66,18 +84,7 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
 
             if ym_userid == str(self._client.me.account.uid):
                 #User's playlists
-                ymplaylist = self._client.users_playlists(playlist_id)
-                track_ids = list(map(lambda t: t.track_id, ymplaylist.tracks))
-                ymplaylist.tracks = self._client.tracks(track_ids)
-                for track in ymplaylist.tracks:
-                    track.liked = self._likes_cache.hasLike(track.id)
-
-                playlist = YMPlaylist.from_playlist(ymplaylist)
-                for track in playlist.tracks:
-                    self._track_cache.put(track)
-                self._playlists_tm[playlist_id] = int(time.time())
-                self._playlists[playlist_id] = playlist
-                return playlist
+                return self.get_user_playlist(playlist_id)
             elif ym_userid == _YM_TRY:
                 #Random playlist from daily events
                 feed = self._client.feed()
@@ -195,9 +202,63 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
         logger.debug("refresh")
         pass
 
-    def save(self, name):
+    def save(self, playlist):
         logger.debug("save")
-        logger.debug(name)
+        logger.debug(playlist)
+        if isinstance(playlist, YMPlaylist):
+          _, kind, ym_userid, playlist_id = playlist.uri.split(":")
+          ymplaylist = self.get_user_playlist(playlist_id)
+          revision = ymplaylist.revision
+          track_ids = list(map(lambda t: t.uri.split(':')[2], ymplaylist.tracks))
+          logger.debug("loaded playlist "+playlist_id+" rev:"+str(revision)+" size:"+str(len(track_ids)))
+          #remove tracks
+          remove_indexes = []
+          index = 0
+          for track_id in track_ids:
+            found = False
+            for tracknew in playlist.tracks:
+              tracknew_id = tracknew.uri.split(':')[2]
+              if track_id == tracknew_id:
+                found = True
+                break
+            if not found:
+              logger.debug('remove track '+track_id)
+              remove_indexes.append(index)
+            index = index + 1
+          for index in remove_indexes:
+              logger.debug('remove at index '+str(index))
+              track_ids.pop(index)
+              self._client.users_playlists_delete_track(playlist_id, index, index+1, revision=revision)
+              revision = revision + 1
+
+          #add new tracks
+          for tracknew in playlist.tracks:
+            found = False
+            tracknew_id = tracknew.uri.split(':')[2]
+            for track_id in track_ids:
+              if track_id == tracknew_id: #already in playlist
+                 found = True
+                 break
+            if not found:
+              logger.debug('appended track '+tracknew.uri)
+              ymtrack = self._client.tracks(tracknew_id)[0]
+              track_ids.insert(0,tracknew_id)
+              self._client.users_playlists_insert_track(playlist_id, ymtrack.id, ymtrack.albums[0].id, revision=revision)
+              revision = revision + 1
+
+
+          ytracks = self._client.tracks(track_ids)
+          tracks = []
+          for track in ytracks:
+            ymtrack = YMTrack.from_track(track,self._likes_cache.hasLike(track.id))
+            tracks.append(ymtrack)
+          ymplaylist = YMPlaylist(uri=playlist.uri, name=playlist.name, tracks=tracks, revision=revision)
+
+          logger.debug("saving playlist "+playlist_id+" rev:"+str(revision)+" size:"+str(len(track_ids)))
+
+          self._playlists_tm[playlist_id] = int(time.time())
+          self._playlists[playlist_id] = ymplaylist
+          return ymplaylist
         if 'liked:' in name:
           self.trackLike(name)
         return None

@@ -1,5 +1,5 @@
 from mopidy.models import Playlist, Track, Ref, fields, Artist, Album
-from yandex_music import Playlist as YMPlaylist, Track as YTrack, Artist as YArtist, Album as YAlbum
+from yandex_music import Playlist as YPlaylist, Track as YTrack, Artist as YArtist, Album as YAlbum
 import logging
 logger = logging.getLogger("yandex")
 
@@ -52,7 +52,7 @@ class YMRef(Ref):
         return ref
 
     @staticmethod
-    def from_playlist(playlist: YMPlaylist):
+    def from_playlist(playlist: YPlaylist):
         uri = f"yandexmusic:playlist:{playlist.owner.uid}:{playlist.kind}"
         name = playlist.title
         artwork = ''
@@ -117,7 +117,7 @@ class YMRef(Ref):
 
 class YMPlaylist(Playlist):
     @staticmethod
-    def from_playlist(playlist: YMPlaylist):
+    def from_playlist(playlist: YPlaylist):
         uri = f"yandexmusic:playlist:{playlist.playlist_id}"
         name = playlist.title
         tracks = []
@@ -125,8 +125,9 @@ class YMPlaylist(Playlist):
           ytrack = YMTrack.from_track(track,track.liked)
           tracks.append(ytrack)
         #tracks = list(map(YMTrack.from_track, playlist.tracks))
-        return YMPlaylist(uri=uri, name=name, tracks=tracks)
+        return YMPlaylist(uri=uri, name=name, tracks=tracks, revision=playlist.revision)
 
+    revision = fields.Integer()
 
 
 
