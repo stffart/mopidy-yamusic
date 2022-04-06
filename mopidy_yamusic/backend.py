@@ -6,11 +6,11 @@ from .playback_provider import YandexMusicPlaybackProvider
 from .library_provider import YandexMusicLibraryProvider
 from .caches import YMTrackCache, YMLikesCache
 
-class YandexMusicBackend(pykka.ThreadingActor, backend.Backend):
+class YaMusicBackend(pykka.ThreadingActor, backend.Backend):
     def __init__(self, config: dict, audio: audio):
-        super(YandexMusicBackend, self).__init__()
+        super(YaMusicBackend, self).__init__()
 
-        ym_config :dict = config["yandexmusic"]
+        ym_config :dict = config["yamusic"]
 
         login = ym_config["login"]
         password = ym_config["password"]

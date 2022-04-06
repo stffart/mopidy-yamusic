@@ -1,13 +1,13 @@
 from mopidy import ext, config
 import pathlib
-from .backend import YandexMusicBackend
+from .backend import YaMusicBackend
 
 __version__ = '0.8'
 
 
 class Extension(ext.Extension):
-    dist_name = "Mopidy-YandexMusic"
-    ext_name = "yandexmusic"
+    dist_name = "Mopidy-YaMusic"
+    ext_name = "yamusic"
     version = __version__
 
     def get_default_config(self):
@@ -25,4 +25,4 @@ class Extension(ext.Extension):
         return True
 
     def setup(self, registry):
-        registry.add("backend", YandexMusicBackend)
+        registry.add("backend", YaMusicBackend)
