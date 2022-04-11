@@ -1,41 +1,44 @@
 from mopidy import backend, models, config
 from yandex_music import Client
-from .caches import YMTrackCache, YMLikesCache
+from .caches import YMTrackCache, YMLikesCache, YMPlaylistCache
 from .classes import YMTrack, YMArtist, YMAlbum, YMRef, YMPlaylist
 import logging
 logger = logging.getLogger("yandex")
 logging.basicConfig(level=logging.DEBUG)
 
 class YandexMusicLibraryProvider(backend.LibraryProvider):
-    def __init__(self, client: Client, track_cache: YMTrackCache, likes_cache: YMLikesCache):
+    def __init__(self, client: Client, track_cache: YMTrackCache, likes_cache: YMLikesCache, playlist_cache: YMPlaylistCache):
         self._client = client
         self._track_cache = track_cache
         self._likes_cache = likes_cache
         self.root_directory = YMRef.root()
+        self._playlist_cache = playlist_cache
+        self._feed_cache = {"days":[{"events":[]}]}
 
     def browse(self, uri):
         logger.debug('browse')
         logger.debug(uri)
         refs = []
         feed = self._client.feed()
+        self._feed_cache = feed
         params = uri.split(':')
         if uri == 'yandexmusic:directory:root':
-          for event in feed.days[0].events:
+          for event in self._feed_cache.days[0].events:
             artwork = ''
             description = ''
             if event.type == 'artists':
-               artwork = event.artists[0].artist.cover.uri
+               artwork = event.artists[0].artist.cover.uri.replace('%%','%1x%2')
                description = 'Исполнители'
             if event.type == 'tracks':
-               artwork = event.tracks[0].cover_uri
+               artwork = event.tracks[0].cover_uri.replace('%%','%1x%2')
                description = 'Треки'
             if event.type == 'albums':
-               artwork = event.albums[0].album.cover_uri
+               artwork = event.albums[0].album.cover_uri.replace('%%','%1x%2')
                description = 'Альбомы'
-            refs.append(YMRef.from_event(event.id,event.title,artwork,description))
+            refs.append(YMRef.from_directory(event.id,event.title,artwork,description))
         else:
           kind = params[1]
-          if kind == 'event':
+          if kind == 'directory':
             id = params[2]
             thisevent = None
             for event in feed.days[0].events:
@@ -60,7 +63,7 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
               name = track.title
               length = track.duration_ms
               artists = list(map(YMArtist.from_artist, track.artists))
-              artwork = track.cover_uri
+              artwork = track.cover_uri.replace('%%','%1x%2')
               ymtrack =  YMTrack(uri=uri, name=name, length=length, artwork=artwork, artists=artists)
               self._track_cache.put(ymtrack)
               ymrefs.append(YMRef.from_ytrack(ymtrack))
@@ -86,6 +89,8 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
           ya_query = " ".join(query['track'])
           kind = 'track'
         search_result = self._client.search(ya_query.encode('utf-8'))
+        if search_result['best'] == None:
+          return None
         res_artists = []
         res_tracks = []
         res_albums = []
@@ -176,7 +181,7 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
             name = track.title
             length = track.duration_ms
             artists = list(map(YMArtist.from_artist, track.artists))
-            artwork = track.cover_uri
+            artwork = track.cover_uri.replace('%%','%1x%2')
             ymtrack =  YMTrack(uri=uri, name=name, length=length, artwork=artwork, artists=artists)
             self._track_cache.put(ymtrack)
             res_tracks.append(ymtrack)
@@ -194,26 +199,54 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
         return []
 
     def get_images(self, uris):
-        logger.debug('get_images')
-        logger.debug(uris)
+        logger.error('get_images')
+        logger.error(uris)
         result = dict()
 
         for uri in uris:
             _, kind, id = uri.split(":", 2)
+            if kind == "directory":
+              for event in self._feed_cache.days[0].events:
+                 artwork = ''
+                 if event.id == id:
+                   if event.type == 'artists':
+                     artwork = event.artists[0].artist.cover.uri
+                   if event.type == 'tracks':
+                     artwork = event.tracks[0].cover_uri
+                   if event.type == 'albums':
+                     artwork = event.albums[0].album.cover_uri
+                   artwork_uri = "https://"+artwork.replace("%%","400x400")
+                   result[uri] = [models.Image(uri=artwork_uri)]
+
+            if kind == "directory":
+               if id == "root":
+                 artwork_uri = "https://"+YMRef.root().artwork
+                 result[uri] = [models.Image(uri=artwork_uri)]
             if kind == "track":
                 track = self._track_cache.get(uri)
                 artwork_uri = ""
                 if track is None:
                     track = self._client.tracks(id)[0]
-                    artwork_uri = track.cover_uri
+                    artwork_uri = track.cover_uri.replace("%%","%1x%2")
                 else:
                     artwork_uri = track.artwork
-                artwork_uri = "https://" + artwork_uri.replace("%%", "400x400")
+                artwork_uri = "https://" + artwork_uri.replace("%1", "400").replace("%2", "400")
                 result[uri] = [models.Image(uri=artwork_uri)]
             if kind == "album":
                 album = self._client.albums(id)[0]
                 artwork_uri = "https://" + album.cover_uri.replace("%%", "400x400")
                 result[uri] = [models.Image(uri=artwork_uri)]
+            if kind == "artist":
+                artist = self._client.artists(id)[0]
+                logger.error(artist)
+                artwork_uri = "https://" + artist.cover.uri.replace("%%", "400x400")
+                result[uri] = [models.Image(uri=artwork_uri)]
             if kind == "playlist":
+                playlist_list = self._playlist_cache.get_list()
+                for playlist in playlist_list:
+                    if playlist.uri == uri:
+                      artwork_uri = "https://" + playlist.artwork.replace("%%", "400x400")
+                      result[uri] = [models.Image(uri=artwork_uri)]
                 pass
+        logger.error(result)
         return result

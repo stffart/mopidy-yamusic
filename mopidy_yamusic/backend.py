@@ -4,7 +4,7 @@ import yandex_music
 from .playlist_provider import YandexMusicPlaylistProvider
 from .playback_provider import YandexMusicPlaybackProvider
 from .library_provider import YandexMusicLibraryProvider
-from .caches import YMTrackCache, YMLikesCache
+from .caches import YMTrackCache, YMLikesCache, YMPlaylistCache
 
 class YaMusicBackend(pykka.ThreadingActor, backend.Backend):
     def __init__(self, config: dict, audio: audio):
@@ -22,9 +22,10 @@ class YaMusicBackend(pykka.ThreadingActor, backend.Backend):
         client = yandex_music.Client.from_credentials(username=login, password=password)
         track_cache = YMTrackCache()
         likes_cache = YMLikesCache(client)
+        playlist_cache = YMPlaylistCache()
 
-        self.playlists = YandexMusicPlaylistProvider(self, client, track_cache, likes_cache)
+        self.playlists = YandexMusicPlaylistProvider(self, client, track_cache, likes_cache, playlist_cache)
         self.playback = YandexMusicPlaybackProvider(client, audio, self, bitrate)
-        self.library = YandexMusicLibraryProvider(client, track_cache, likes_cache)
+        self.library = YandexMusicLibraryProvider(client, track_cache, likes_cache, playlist_cache)
 
         self.uri_schemes = ["yandexmusic"]

@@ -4,6 +4,7 @@ setup(
     name='mopidy-yamusic',
     version='0.9',
     description='Mopidy extension for playing music from YandexMusic',
+    description_file='README.md',
     url='https://github.com/stffart/mopidy-yamusic',
     author='stffart',
     author_email='stffart@gmail.com',

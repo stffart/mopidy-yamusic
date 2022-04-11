@@ -1,7 +1,37 @@
-from .classes import YMTrack
-
+from .classes import YMTrack, YMPlaylist
+import time
 import logging
 logger = logging.getLogger("yandex")
+
+class YMPlaylistCache:
+
+    _playlists = {}
+
+    def __init__(self):
+        self._cache = dict()
+        self._playlists_tm = dict()
+
+    def put(self, playlist: YMPlaylist):
+        self._cache[playlist.uri] = playlist
+        self._playlists_tm[playlist.uri] = int(time.time())
+        logger.error("put "+playlist.uri)
+
+    def get(self, uri: str) -> YMPlaylist:
+        if uri not in self._cache:
+            return None
+        playlist = self._cache[uri]
+        return playlist
+
+
+    def put_list(self, list):
+      self._playlists = list
+
+    def get_list(self):
+      return self._playlists 
+
+    def in_cache(self, uri):
+      current_time = int(time.time())
+      return (uri in self._cache) and (current - self._playlists_tm[uri] < 7200) #caching for 2 hours
 
 class YMTrackCache:
     def __init__(self):
