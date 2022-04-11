@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='mopidy-yamusic',
-    version='0.9',
+    version='0.9.5',
     description='Mopidy extension for playing music from YandexMusic',
     description_file='README.md',
     url='https://github.com/stffart/mopidy-yamusic',
