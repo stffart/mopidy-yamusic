@@ -2,7 +2,7 @@ from mopidy import ext, config
 import pathlib
 from .backend import YaMusicBackend
 
-__version__ = '0.9.5'
+__version__ = '1.0'
 
 
 class Extension(ext.Extension):

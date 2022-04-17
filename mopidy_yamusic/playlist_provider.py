@@ -11,6 +11,7 @@ logger = logging.getLogger("yandex")
 _YM_GENERATED = "yandex-generated"
 _YM_LIKED = "yandex-like"
 _YM_TRY = "yandex-try"
+_YM_BLOG = "yandex-blog"
 
 
 class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
@@ -35,9 +36,10 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
         yandex_premier = YMRef.from_raw(_YM_GENERATED, "yamusic-premiere", "Премьера","avatars.yandex.net/get-music-user-playlist/27701/r5ldfjP1rJoson/%1x%2", True)
         yandex_liked = YMRef.from_raw(_YM_LIKED, "yamusic-like", "Мне нравится","music.yandex.ru/blocks/playlist-cover/playlist-cover_like.png", True)
         yandex_try = YMRef.from_raw(_YM_TRY, "yamusic-try", "Попробуйте","avatars.yandex.net/get-music-misc/30221/mix.5f632be0dc6c364f3f1a4bf7.background-image.1637914056405/%1x%2", True)
+        yandex_blog = YMRef.from_raw(_YM_BLOG, "1234", "Новые хиты","avatars.yandex.net/get-music-user-playlist/34120/103372440.1234.39116ru/%1x%2?1648715240098", True)
         playlists = self._client.users_playlists_list()
         refs = []
-        refs.extend([yandex_daily, yandex_alice, yandex_premier, yandex_liked, yandex_try, yandex_podcasts])
+        refs.extend([yandex_daily, yandex_alice, yandex_premier, yandex_liked, yandex_try, yandex_blog, yandex_podcasts])
         user_refs = list(map(YMRef.from_playlist, playlists))
         refs.extend(user_refs)
         self._playlist_cache.put_list(refs)
@@ -56,9 +58,6 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
             return refs
 
     def get_user_playlist(self, playlist_id):
-            if self._playlist_cache.in_cache(playlist_id):
-              return self._playlist_cache.get(playlist_id)
-
             ymplaylist = self._client.users_playlists(playlist_id)
             track_ids = list(map(lambda t: t.track_id, ymplaylist.tracks))
             ymplaylist.tracks = self._client.tracks(track_ids)
@@ -78,8 +77,8 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
             logger.debug(uri)
             _, kind, ym_userid, playlist_id = uri.split(":")
 
-            if self._playlist_cache.in_cache(playlist_id):
-              return self._playlist_cache.get(playlist_id)
+            if self._playlist_cache.in_cache(uri):
+              return self._playlist_cache.get(uri)
 
             if ym_userid == str(self._client.me.account.uid):
                 #User's playlists
@@ -110,9 +109,10 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
                 ytracks = self._client.tracks(ymtracks_id_part)
                 for track in ytracks:
                   ymtracks.append(YMTrack.from_track(track,self._likes_cache.hasLike(track.id)))
-                uri = f"yandexmusic:playlist:try"
+                uri = f"yandexmusic:playlist:yandex-try:yamusic-try"
                 name = "Try"
                 playlist = YMPlaylist(uri=uri, name=name, tracks=ymtracks)
+                self._playlist_cache.put(playlist)
                 return playlist
             elif ym_userid == _YM_LIKED:
                 #Random playlist from likes
@@ -135,9 +135,10 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
                 ytracks = self._client.tracks(ymtracks_id_part)
                 for track in ytracks:
                   ymtracks.append(YMTrack.from_track(track,True))
-                uri = f"yandexmusic:playlist:liked"
+                uri = f"yandexmusic:playlist:yandex-like:yamusic-like"
                 name = "Liked"
                 playlist = YMPlaylist(uri=uri, name=name, tracks=ymtracks)
+                self._playlist_cache.put(playlist)
                 return playlist
             elif ym_userid == _YM_GENERATED:
                 #Yandex generated playlist
@@ -152,6 +153,24 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
                 for track in ymplaylist.tracks:
                     track.liked = self._likes_cache.hasLike(track.id)
                 ymplaylist.generated = True
+                ymplaylist.owner.uid = _YM_GENERATED
+                ymplaylist.kind = playlist_id
+                playlist = YMPlaylist.from_playlist(ymplaylist)
+                for track in playlist.tracks:
+                    self._track_cache.put(track)
+
+                self._playlist_cache.put(playlist)
+                return playlist
+            elif ym_userid == _YM_BLOG:
+                ymplaylist = self._client.users_playlists(playlist_id, user_id="music-blog")
+                track_ids = list(map(lambda t: t.track_id, ymplaylist.tracks))
+                ymplaylist.tracks = self._client.tracks(track_ids)
+                for track in ymplaylist.tracks:
+                  track.liked = self._likes_cache.hasLike(track.id)
+
+                ymplaylist.generated = True
+                ymplaylist.owner.uid = _YM_BLOG
+                ymplaylist.kind = playlist_id
                 playlist = YMPlaylist.from_playlist(ymplaylist)
                 for track in playlist.tracks:
                     self._track_cache.put(track)

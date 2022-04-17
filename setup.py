@@ -1,10 +1,15 @@
 from setuptools import setup
 
+from pathlib import Path
+this_directory = Path(__file__).parent
+long_description = (this_directory / "README.md").read_text()
 setup(
     name='mopidy-yamusic',
-    version='0.9.5',
+    version='1.0',
     description='Mopidy extension for playing music from YandexMusic',
     description_file='README.md',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     url='https://github.com/stffart/mopidy-yamusic',
     author='stffart',
     author_email='stffart@gmail.com',

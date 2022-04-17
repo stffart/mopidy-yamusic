@@ -123,7 +123,7 @@ class YMRef(Ref):
 class YMPlaylist(Playlist):
     @staticmethod
     def from_playlist(playlist: YPlaylist):
-        uri = f"yandexmusic:playlist:{playlist.playlist_id}"
+        uri = f"yandexmusic:playlist:{playlist.owner.uid}:{playlist.kind}"
         name = playlist.title
         tracks = []
         for track in playlist.tracks:

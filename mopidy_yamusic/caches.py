@@ -14,7 +14,6 @@ class YMPlaylistCache:
     def put(self, playlist: YMPlaylist):
         self._cache[playlist.uri] = playlist
         self._playlists_tm[playlist.uri] = int(time.time())
-        logger.error("put "+playlist.uri)
 
     def get(self, uri: str) -> YMPlaylist:
         if uri not in self._cache:
@@ -27,11 +26,11 @@ class YMPlaylistCache:
       self._playlists = list
 
     def get_list(self):
-      return self._playlists 
+      return self._playlists
 
     def in_cache(self, uri):
       current_time = int(time.time())
-      return (uri in self._cache) and (current - self._playlists_tm[uri] < 7200) #caching for 2 hours
+      return (uri in self._cache) and (current_time - self._playlists_tm[uri] < 7200) #caching for 2 hours
 
 class YMTrackCache:
     def __init__(self):
