@@ -21,7 +21,6 @@ class YMPlaylistCache:
         playlist = self._cache[uri]
         return playlist
 
-
     def put_list(self, list):
       self._playlists = list
 
@@ -31,6 +30,24 @@ class YMPlaylistCache:
     def in_cache(self, uri):
       current_time = int(time.time())
       return (uri in self._cache) and (current_time - self._playlists_tm[uri] < 7200) #caching for 2 hours
+
+    def update_like(self, track):
+      current_time = int(time.time())
+      for p in self._cache:
+        #check time
+        if current_time - self._playlists_tm[p] > 7200:
+           continue
+        logger.error(self._cache[p])
+        tracks = []
+        found = False
+        for i, t in enumerate(self._cache[p].tracks):
+          if t.uri == track.uri:
+             found = True
+             if len(tracks) == 0:
+               tracks = list(self._cache[p].tracks)
+             tracks[i] = track
+        if found:
+          self.put(YMPlaylist(uri=self._cache[p].uri, name=self._cache[p].name, tracks=tracks))
 
 class YMTrackCache:
     def __init__(self):

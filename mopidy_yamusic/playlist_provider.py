@@ -201,11 +201,13 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
             self._likes_cache.put(track_id)
             ytrack = YMTrack.from_track(track,True)
             self._track_cache.put(ytrack)
+            self._playlist_cache.update_like(ytrack)
           else:
             self._client.users_likes_tracks_remove(track_id)
             self._likes_cache.remove(track_id)
             ytrack = YMTrack.from_track(track,False)
             self._track_cache.put(ytrack)
+            self._playlist_cache.update_like(ytrack)
 
     def create(self, name):
         logger.debug("save")
