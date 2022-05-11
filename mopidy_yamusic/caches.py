@@ -1,7 +1,9 @@
+
 from .classes import YMTrack, YMPlaylist
 import time
 import logging
 logger = logging.getLogger("yandex")
+import asyncio
 
 class YMPlaylistCache:
 
@@ -65,12 +67,11 @@ class YMTrackCache:
 
 
 class YMLikesCache:
-    def __init__(self, client):
+    def __init__(self):
         self._cache = []
-        self._client = client
-        self.loadLikes()
 
-    def loadLikes(self):
+    def loadLikes(self, client):
+         self._client = client
          self._cache = []
          tracks = self._client.users_likes_tracks(self._client.me.account.uid)
          for track in tracks.tracks:

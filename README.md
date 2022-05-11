@@ -25,7 +25,7 @@ pip install mopidy-yamusic
 
 ```
 [yamusic]
-login = alice
-password = secret
 bitrate = 192 
 ```
+
+After restart go to http://mopidy:6680/yamusic/auth, to authorize mopidy with yandex music api

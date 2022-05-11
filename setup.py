@@ -5,7 +5,7 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 setup(
     name='mopidy-yamusic',
-    version='1.0',
+    version='1.5.1',
     description='Mopidy extension for playing music from YandexMusic',
     description_file='README.md',
     long_description=long_description,
@@ -17,7 +17,7 @@ setup(
     packages=['mopidy_yamusic'],
     package_dir={'mopidy_yamusic':'mopidy_yamusic'},
     package_data={'mopidy_yamusic':['ext.conf']},
-    install_requires=['yandex-music<2.0',
+    install_requires=['yandex-music>=2.0',
                       ],
     entry_points={
         'mopidy.ext': [

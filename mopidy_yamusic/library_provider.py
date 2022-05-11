@@ -7,13 +7,15 @@ logger = logging.getLogger("yandex")
 logging.basicConfig(level=logging.DEBUG)
 
 class YandexMusicLibraryProvider(backend.LibraryProvider):
-    def __init__(self, client: Client, track_cache: YMTrackCache, likes_cache: YMLikesCache, playlist_cache: YMPlaylistCache):
-        self._client = client
+    def __init__(self, track_cache: YMTrackCache, likes_cache: YMLikesCache, playlist_cache: YMPlaylistCache):
         self._track_cache = track_cache
         self._likes_cache = likes_cache
         self.root_directory = YMRef.root()
         self._playlist_cache = playlist_cache
         self._feed_cache = {"days":[{"events":[]}]}
+
+    def setClient(self, client):
+        self._client = client
 
     def browse(self, uri):
         logger.debug('browse')

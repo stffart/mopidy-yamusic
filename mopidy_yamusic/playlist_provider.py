@@ -17,16 +17,22 @@ _YM_BLOG = "yandex-blog"
 class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
 
 
-    def __init__(self, backend, client: yandex_music.Client, track_cache: YMTrackCache, likes_cache: YMLikesCache, playlist_cache: YMPlaylistCache):
+    def __init__(self, backend, track_cache: YMTrackCache, likes_cache: YMLikesCache, playlist_cache: YMPlaylistCache):
         super().__init__(backend)
-        self._client = client
         self._track_cache = track_cache
         self._likes_cache = likes_cache
         self._playlist_cache = playlist_cache
+        self._client = None
         logger.debug("yandex started")
+
+    def setClient(self, client):
+        self._client = client
 
     def as_list(self) -> List[YMRef]:
         logger.debug("playlist as list")
+        if self._client == None:
+          return []
+
         if self._playlist_cache.get_list() != {}:
           return self._playlist_cache.get_list()
 
@@ -48,6 +54,9 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
 
     def get_items(self, uri: str) -> YMRef:
         logger.debug("playlist get items")
+        kind = uri.split(":")[1]
+        if kind == 'track':
+          return []
         _, kind, ym_userid, playlist_id = uri.split(":")
         logger.debug(ym_userid)
         if ym_userid == str(self._client.me.account.uid):
@@ -73,12 +82,15 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
             return playlist
 
     def lookup(self, uri: str) -> YMPlaylist:
-            logger.debug("playlist lookup")
-            logger.debug(uri)
             _, kind, ym_userid, playlist_id = uri.split(":")
 
             if self._playlist_cache.in_cache(uri):
               return self._playlist_cache.get(uri)
+
+            if self._client == None:
+              return None
+            logger.debug("playlist lookup")
+            logger.debug(uri)
 
             if ym_userid == str(self._client.me.account.uid):
                 #User's playlists
@@ -162,6 +174,7 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
                 self._playlist_cache.put(playlist)
                 return playlist
             elif ym_userid == _YM_BLOG:
+                logger.error(playlist_id)
                 ymplaylist = self._client.users_playlists(playlist_id, user_id="music-blog")
                 track_ids = list(map(lambda t: t.track_id, ymplaylist.tracks))
                 ymplaylist.tracks = self._client.tracks(track_ids)
@@ -210,8 +223,8 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
             self._playlist_cache.update_like(ytrack)
 
     def create(self, name):
-        logger.debug("save")
-        logger.debug(name)
+        logger.error("save")
+        logger.error(name)
         if 'liked:' in name:
           self.trackLike(name)
         return None
@@ -224,8 +237,8 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
         pass
 
     def save(self, playlist):
-        logger.debug("save")
-        logger.debug(playlist)
+        logger.error("save")
+        logger.error(playlist)
         if isinstance(playlist, YMPlaylist):
           _, kind, ym_userid, playlist_id = playlist.uri.split(":")
           ymplaylist = self.get_user_playlist(playlist_id)

@@ -5,10 +5,13 @@ logger = logging.getLogger("yandex")
 
 
 class YandexMusicPlaybackProvider(backend.PlaybackProvider):
-    def __init__(self, client: Client, audio: audio.Audio, backend: backend.Backend, bitrate:int):
+    def __init__(self, audio: audio.Audio, backend: backend.Backend, bitrate:int, url:str):
         super().__init__(audio, backend)
-        self._client = client
         self._bitrate = bitrate
+        self._url = url
+
+    def setClient(self, client):
+        self._client = client
 
     def translate_uri(self, uri: str):
         logger.debug('translate')
@@ -16,6 +19,7 @@ class YandexMusicPlaybackProvider(backend.PlaybackProvider):
         params = uri.split(":")
         kind = params[1]
         if kind == 'track':
+          return self._url+uri
           track_id = params[2]
           uid = f"{track_id}"
           infos = self._client.tracks_download_info(uid, get_direct_links=True)
