@@ -56,6 +56,7 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
         logger.debug("playlist get items")
         kind = uri.split(":")[1]
         if kind == 'track':
+          logger.error('track lookup in playlist provider: '+uri)
           return []
         _, kind, ym_userid, playlist_id = uri.split(":")
         logger.debug(ym_userid)

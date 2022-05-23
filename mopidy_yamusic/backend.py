@@ -17,8 +17,6 @@ class YaMusicBackend(pykka.ThreadingActor, backend.Backend):
 
         ym_config :dict = config["yamusic"]
 
-        login = ym_config["login"]
-        password = ym_config["password"]
         bitrate = int(ym_config["bitrate"]) if "bitrate" in ym_config else 192
 
         self._config = config

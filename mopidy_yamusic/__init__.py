@@ -19,8 +19,8 @@ class Extension(ext.Extension):
 
     def get_config_schema(self):
         schema = super().get_config_schema()
-        schema["login"] = config.String()
-        schema["password"] = config.Secret()
+        schema["login"] = config.Deprecated()
+        schema["password"] = config.Deprecated()
         schema["bitrate"] = config.Integer(optional=True)
         return schema
 
@@ -39,6 +39,6 @@ class Extension(ext.Extension):
         self._client = None
         self._client_future = oauth.get_client()
         return [
-            (r"/auth", AuthHandler, { }),
             (r"/track/(.+)", IndexHandler, {"core": core, "client": self._client, "client_future":self._client_future, "bitrate": config['yamusic']['bitrate'] }),
+            (r"/(.*)", AuthHandler, { }),
         ]
