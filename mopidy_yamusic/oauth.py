@@ -45,7 +45,6 @@ class OAuthManager(metaclass=MetaSingleton):
         except:
             self._token = None
 
-        logger.error(self._token)
         self.loop = asyncio.new_event_loop()
         self.loop.set_exception_handler(self.handle_exception)
         asyncio.run_coroutine_threadsafe(self.try_get_token(),self.loop)
@@ -84,37 +83,33 @@ class OAuthManager(metaclass=MetaSingleton):
       'device_id': str(self.device_uuid),
       'device_name': self.device_name
       }
-      logger.error(params)
       res = requests.post('https://oauth.yandex.ru/device/code',data=params,json={}).json()
       self.device_code = res['device_code']
       self.verification_url = res['verification_url']
       self.user_code = res['user_code']
       self.registered_time = int(time.time())+300
-      logger.error(res)
       return self
 
     @asyncio.coroutine
     def try_get_token(self):
       token = None
       while True:
-         logger.error('try get token')
+         logger.debug('try get token')
          token = self.get_token()
          if token == None:
            yield from asyncio.sleep(5)
          else:
            break
-      logger.error('init client with token '+token)
+      logger.debug('init client with token '+token)
       self._client = Client(token).init()
-      logger.error('init finished')
+      logger.debug('init finished')
       for c in self._callbacks:
-        logger.error('enter callback')
         c(self._client)
 
-      logger.error(self._client)
       for f in self.client_futures:
-        logger.error('set future result')
+        logger.debug('set future result')
         f.set_result(self._client)
-      logger.error('token get success')
+      logger.debug('token get success')
 
     def get_token(self):
       if self._token != None:
@@ -129,9 +124,7 @@ class OAuthManager(metaclass=MetaSingleton):
       'grant_type': 'device_code',
       'code':self.device_code
       }
-      logger.error(params)
       res = requests.post('https://oauth.yandex.ru/token',data=params).json()
-      logger.error(res)
       if 'access_token' in res:
         self._token = res['access_token']
         with open(self.home+'/.yatoken',"w") as token_file:
@@ -143,7 +136,6 @@ class OAuthManager(metaclass=MetaSingleton):
     def get_client(self):
       client_future = asyncio.Future()
       if self._token != None:
-        logger.error('create client')
         self._client = Client(self._token).init()
       if self._client != None:
         client_future.set_result(self._client)

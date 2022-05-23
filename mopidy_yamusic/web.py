@@ -56,7 +56,6 @@ class IndexHandler(web.RequestHandler):
             except:
               logger.error("Cannot get track link. Retry...")
               yield asyncio.sleep(5)
-          logger.error(infos)
           for info in infos:
               if info.codec == "mp3" and info.bitrate_in_kbps == self._bitrate:
                   link = info.direct_link
