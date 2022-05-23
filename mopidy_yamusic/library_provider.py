@@ -58,19 +58,12 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
             return ymrefs
           if kind == 'artist':
             ymartist_id = params[2]
-            tracks = self._client.artists_tracks(ymartist_id)
+            albums = self._client.artists_direct_albums(ymartist_id)
             ymrefs = []
-            for track in tracks:
-              uri = f"yandexmusic:track:{track.id}"
-              name = track.title
-              length = track.duration_ms
-              artists = list(map(YMArtist.from_artist, track.artists))
-              artwork = track.cover_uri.replace('%%','%1x%2')
-              ymtrack =  YMTrack(uri=uri, name=name, length=length, artwork=artwork, artists=artists)
-              self._track_cache.put(ymtrack)
-              ymrefs.append(YMRef.from_ytrack(ymtrack))
+            for album in albums:
+              ymrefs.append(YMRef.from_album(album))
             return ymrefs
-          return res_tracks
+          return []
 
         return refs
 

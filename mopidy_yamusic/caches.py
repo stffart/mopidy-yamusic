@@ -88,3 +88,20 @@ class YMLikesCache:
     def hasLike(self, track_id):
         return str(track_id) in self._cache
 
+
+class YMTrackDataCache:
+    def __init__(self):
+        self._cache = []
+
+    def put(self, track_id, data):
+        if not track_id in self._cache:
+          self._cache.append(track_id)
+          with open(f"/var/lib/mopidy/.yatracks/{track_id}") as f:
+            f.write(data)
+
+    def get(self, track_id):
+        if not track_id in self._cache:
+          return None
+        with open(f"/var/lib/mopidy/.yatracks/{track_id}") as f:
+           data = f.read()
+           return data
