@@ -194,8 +194,8 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
         return []
 
     def get_images(self, uris):
-        logger.error('get_images')
-        logger.error(uris)
+        logger.debug('get_images')
+        logger.debug(uris)
         result = dict()
 
         for uri in uris:

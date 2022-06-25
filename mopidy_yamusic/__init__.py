@@ -5,6 +5,8 @@ import yandex_music
 __version__ = '0.8'
 import logging
 logger = logging.getLogger("yandex")
+logging.basicConfig()
+logging.getLogger().setLevel(logging.WARN)
 from .oauth import OAuthManager
 
 class Extension(ext.Extension):
