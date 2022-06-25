@@ -1,9 +1,12 @@
-
+from os.path import exists
+from os import mkdir, getenv
+import pathlib
 from .classes import YMTrack, YMPlaylist
 import time
 import logging
 logger = logging.getLogger("yandex")
 import asyncio
+import json
 
 class YMPlaylistCache:
 
@@ -91,17 +94,31 @@ class YMLikesCache:
 
 class YMTrackDataCache:
     def __init__(self):
+        self._config_dir = pathlib.Path(
+            getenv("XDG_CONFIG_HOME", "~/.yatracks")
+        ).expanduser()
+        logger.error(self._config_dir)
+        if not exists(f"{self._config_dir}"):
+          mkdir(f"{self._config_dir}")
         self._cache = []
 
-    def put(self, track_id, data):
+    def put(self, track_id, data, headers):
         if not track_id in self._cache:
           self._cache.append(track_id)
-          with open(f"/var/lib/mopidy/.yatracks/{track_id}") as f:
+          with open(f"{self._config_dir}/{track_id}","wb") as f:
             f.write(data)
+          with open(f"{self._config_dir}/{track_id}.json","w") as f:
+            json.dump(headers,f)
 
     def get(self, track_id):
-        if not track_id in self._cache:
-          return None
-        with open(f"/var/lib/mopidy/.yatracks/{track_id}") as f:
-           data = f.read()
-           return data
+        data = None
+        if exists(f"{self._config_dir}/{track_id}"):
+          with open(f"{self._config_dir}/{track_id}","rb") as f:
+             data = f.read()
+
+        headers = None
+        if exists(f"{self._config_dir}/{track_id}.json"):
+          with open(f"{self._config_dir}/{track_id}.json","r") as f:
+             headers = json.load(f)
+
+        return (data,headers)

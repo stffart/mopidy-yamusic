@@ -8,10 +8,10 @@ Extended version of https://pypi.org/project/Mopidy-Yandexmusic/ with some addit
 Features:
 - Playback from YandexMusic
 - Search: Artist, Track, Album
-- Playlists: Generated Daily, Alice, Podcasts, Premier, Liked (Random from liked Tracks), Try (Daily Recommendations)
+- Playlists: Generated Daily, Alice, Podcasts, Premier, Liked (Random from liked Tracks), Last Liked, Try (Daily Recommendations)
 - User's stored playlists, add/remove track from playlist, like tracks
 - Browse Daily Events (Yandex Recommendations)
-
+- Local Track Cache
 
 ### Installation
 
