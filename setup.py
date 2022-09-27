@@ -5,7 +5,7 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 setup(
     name='mopidy-yamusic',
-    version='2.2.0',
+    version='2.2.1',
     description='Mopidy extension for playing music from YandexMusic',
     description_file='README.md',
     long_description=long_description,
