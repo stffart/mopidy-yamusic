@@ -13,6 +13,7 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
         self.root_directory = YMRef.root()
         self._playlist_cache = playlist_cache
         self._feed_cache = {"days":[{"events":[]}]}
+        self._client = None
 
     def setClient(self, client):
         self._client = client
@@ -152,6 +153,8 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
     def lookup(self, uri: str):
         logger.debug('lookup')
         logger.debug(uri)
+        if self._client == None:
+           return None
         track = self._track_cache.get(uri)
         if track is not None:
             return [track]
@@ -194,8 +197,8 @@ class YandexMusicLibraryProvider(backend.LibraryProvider):
         return []
 
     def get_images(self, uris):
-        logger.debug('get_images')
-        logger.debug(uris)
+        logger.error('get_images')
+        logger.error(uris)
         result = dict()
 
         for uri in uris:

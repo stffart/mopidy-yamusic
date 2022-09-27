@@ -40,15 +40,14 @@ class YandexMusicPlaylistProvider(backend.PlaylistsProvider):
 
         yandex_daily = YMRef.from_raw(_YM_GENERATED, "yamusic-daily", "Микс дня", "avatars.yandex.net/get-music-user-playlist/70586/r5l8ziDPSKyp02/%1x%2", True)
         yandex_podcasts = YMRef.from_raw(_YM_GENERATED, "yamusic-podcasts", "Подкасты","avatars.yandex.net/get-music-user-playlist/28719/r5loh7rM0HS0tl/%1x%2", True)
-        yandex_alice = YMRef.from_raw(_YM_GENERATED, "yamusic-origin", "Лист Алисы","avatars.yandex.net/get-music-user-playlist/71140/r5lnmqmqOdwjQ0/%1x%2", True)
         yandex_premier = YMRef.from_raw(_YM_GENERATED, "yamusic-premiere", "Премьера","avatars.yandex.net/get-music-user-playlist/27701/r5ldfjP1rJoson/%1x%2", True)
         yandex_liked = YMRef.from_raw(_YM_LIKED, "yamusic-like", "Мне нравится","music.yandex.ru/blocks/playlist-cover/playlist-cover_like.png", True)
         yandex_liked_last = YMRef.from_raw(_YM_LIKED_LAST, "yamusic-likelast", "Понравилось","music.yandex.ru/blocks/playlist-cover/playlist-cover_like.png", True)
-        yandex_try = YMRef.from_raw(_YM_TRY, "yamusic-try", "Попробуйте","avatars.yandex.net/get-music-misc/30221/mix.5f632be0dc6c364f3f1a4bf7.background-image.1637914056405/%1x%2", True)
+        yandex_try = YMRef.from_raw(_YM_TRY, "yamusic-try", "Попробуйте","avatars.yandex.net/get-music-misc/70683/mix.5f632be0dc6c364f3f1a4bf7.background-image.1663940728198/%1x$2",True)
         yandex_blog = YMRef.from_raw(_YM_BLOG, "1234", "Новые хиты","avatars.yandex.net/get-music-user-playlist/34120/103372440.1234.39116ru/%1x%2?1648715240098", True)
         playlists = self._client.users_playlists_list()
         refs = []
-        refs.extend([yandex_daily, yandex_alice, yandex_premier, yandex_liked, yandex_liked_last, yandex_try, yandex_blog, yandex_podcasts])
+        refs.extend([yandex_daily, yandex_premier, yandex_liked, yandex_liked_last, yandex_try, yandex_blog, yandex_podcasts])
         user_refs = list(map(YMRef.from_playlist, playlists))
         refs.extend(user_refs)
         self._playlist_cache.put_list(refs)
