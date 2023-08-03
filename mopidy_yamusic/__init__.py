@@ -2,7 +2,7 @@ from mopidy import ext, config
 import pathlib
 from .backend import YaMusicBackend
 import yandex_music
-__version__ = '0.8'
+__version__ = '2.2.2'
 import logging
 logger = logging.getLogger("yandex")
 from .oauth import OAuthManager
