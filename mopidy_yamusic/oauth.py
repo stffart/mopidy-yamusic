@@ -90,14 +90,13 @@ class OAuthManager(metaclass=MetaSingleton):
       self.registered_time = int(time.time())+300
       return self
 
-    @asyncio.coroutine
-    def try_get_token(self):
+    async def try_get_token(self):
       token = None
       while True:
          logger.debug('try get token')
          token = self.get_token()
          if token == None:
-           yield from asyncio.sleep(5)
+           await asyncio.sleep(5)
          else:
            break
       logger.debug('init client with token '+token)
@@ -142,5 +141,3 @@ class OAuthManager(metaclass=MetaSingleton):
       else:
         self.client_futures.append(client_future)
       return client_future
-
-
